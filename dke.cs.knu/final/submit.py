@@ -84,6 +84,7 @@ with tf.device("/GPU:0"):
     archive["class"] = yhat.tolist()
 
     # Write to file
+    output_file = "finalDKE.csv"
     print("Writing file...")
-    archive.to_csv("./finalDKELSTM.csv", mode='w', index=False)
+    archive.to_csv("./outputfile" + output_file, mode='w', index=False)
 
