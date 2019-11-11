@@ -122,7 +122,7 @@ with tf.device("/GPU:0"):
 
 with tf.device("/GPU:0"):
     epochs = 6
-    batch_size = 32
+    batch_size = 16
 
     model = conv_fully()
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
