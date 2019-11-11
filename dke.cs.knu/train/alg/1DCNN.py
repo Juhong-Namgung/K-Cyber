@@ -30,6 +30,16 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.9
 K.tensorflow_backend.set_session(tf.Session(config=config))
 
+# General save model to disk function
+def save_model(fileModelJSON, fileWeights):
+    if Path(fileModelJSON).is_file():
+        os.remove(fileModelJSON)
+    json_string = model.to_json()
+    with open(fileModelJSON, 'w') as f:
+        json.dump(json_string, f)
+    if Path(fileWeights).is_file():
+        os.remove(fileWeights)
+    model.save_weights(fileWeights)
 
 with tf.device("/GPU:0"):
 
@@ -37,19 +47,15 @@ with tf.device("/GPU:0"):
     DATA_HOME ='/home/jhnamgung/kcyber/data/'
     df = pd.read_csv(DATA_HOME + 'dga_1st_round_train.csv',encoding='ISO-8859-1', sep=',')
 
-
-    # Initial Data Preparation URL
-
-    # Step 1: Convert raw URL string in list of lists where characters that are contained in "printable" are sotred encoded as integer
+    # Convert domain string to integer
     # URL 알파벳을 숫자로 변경
     url_int_tokens = [[printable.index(x) + 1 for x in url if x in printable] for url in df.domain]
 
-    # Step 2: Cut URL string at max_len or pad with zeros if shorter
+    # Padding domain integer max_len=74
     # 최대길이 74로 지정
     max_len = 74
+
     X = sequence.pad_sequences(url_int_tokens, maxlen=max_len)
-    
-    # Step 3: Extract labels form df to nupy array
     y = np.array(df.nclass)
 
     # Cross-validation
@@ -59,15 +65,15 @@ with tf.device("/GPU:0"):
     y_train = np_utils.to_categorical(y_train0, 20)
     y_test = np_utils.to_categorical(y_test0, 20)
 
-    # Embedding
-    # 1D Convolution and Fully Connected Layers
 with tf.device("/GPU:0"):
+
     def conv_fully(max_len=74, emb_dim=32, max_vocab_len=100, W_reg=regularizers.l2(1e-4)):
+
         # Input
         main_input = Input(shape=(max_len,), dtype='int32', name='main_input')
 
         # Embedding layer
-        # URL을 int로변환한 것을 임베딩
+        # URL을 int로 변환한 것을 임베딩
         emb = Embedding(input_dim=max_vocab_len, output_dim=emb_dim, input_length=max_len, W_regularizer=W_reg)(main_input)
         emb = Dropout(0.25)(emb)
 
@@ -113,6 +119,7 @@ with tf.device("/GPU:0"):
         adam = Adam(lr=1e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
         model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
         return model
+
 with tf.device("/GPU:0"):
     epochs = 6
     batch_size = 32
@@ -121,4 +128,8 @@ with tf.device("/GPU:0"):
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
     loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
     print('\nFinal Cross-Validation Accuracy', accuracy, '\n')
+
+    # Save final training model
+    model_name = "1DCNN"
+    save_model("../models/" + model_name + ".json", "../models/" + model_name + ".h5")
 
