@@ -131,5 +131,5 @@ with tf.device("/GPU:0"):
     
     # Save final training model
     model_name = "1DCNN_final"
-    save_model("./models/" + model_name + ".json", "./models/" + model_name + ".h5")
+    save_model("../models/" + model_name + ".json", "../models/" + model_name + ".h5")
 
