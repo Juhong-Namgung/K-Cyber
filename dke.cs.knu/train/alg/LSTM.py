@@ -26,38 +26,46 @@ import json
 
 import warnings
 warnings.filterwarnings("ignore")
+
 config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.9
 K.tensorflow_backend.set_session(tf.Session(config=config))
 
+# General save model to disk function
+def save_model(fileModelJSON, fileWeights):
+    if Path(fileModelJSON).is_file():
+        os.remove(fileModelJSON)
+    json_string = model.to_json()
+    with open(fileModelJSON, 'w') as f:
+        json.dump(json_string, f)
+    if Path(fileWeights).is_file():
+        os.remove(fileWeights)
+    model.save_weights(fileWeights)
 
 with tf.device("/GPU:1"):
+
     # Load data
     DATA_HOME ='/home/jhnamgung/kcyber/data/'
     df = pd.read_csv(DATA_HOME + 'dga_1st_round_train.csv',encoding='ISO-8859-1', sep=',')
 
-
-
-    # Split data to train and test
-    # Sampling
-
-    # Initial Data Preparation URL
-
-    # Step 1: Convert raw URL string in list of lists where characters that are contained in "printable" are sotred encoded as integer
+    # Convert domain string to integer
+    # URL 알파벳을 숫자로 변경
     url_int_tokens = [[printable.index(x) + 1 for x in url if x in printable] for url in df.domain]
 
-    # Step 2: Cut URL string at max_len or pad with zeros if shorter
+    # Padding domain integer max_len=74
+    # 최대길이 74로 지정
     max_len = 74
-    X = sequence.pad_sequences(url_int_tokens, maxlen=max_len)
 
-    # Step 3: Extract labels form df to nupy array
+    X = sequence.pad_sequences(url_int_tokens, maxlen=max_len)
     y = np.array(df.nclass)
 
+    # Cross-validation
     X_train, X_test, y_train0, y_test0 = model_selection.train_test_split(X, y, test_size=0.2, random_state=33)
+
+    # dga class: 0~19: 20개
     y_train = np_utils.to_categorical(y_train0, 20)
     y_test = np_utils.to_categorical(y_test0, 20)
-    # Embedding
-    # 1D Convolution and Fully Connected Layers
+
 with tf.device("/GPU:1"):
 
     def simple_lstm(max_len=74, emb_dim=32, max_vocab_len=100, lstm_output_size=32, W_reg=regularizers.l2(1e-4)):
@@ -79,20 +87,17 @@ with tf.device("/GPU:1"):
         model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
         return model
 
-        # Output layer (last fully connected layer)
-        output = Dense(20, activation='sigmoid', name='main_output')(hidden2)
-
-        # Compile model and define optimizer
-        model = Model(input=[main_input], output=[output])
-        adam = Adam(lr=1e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
-        model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
-        return model
 with tf.device("/GPU:1"):
-    epochs = 10
+    epochs = 5
     batch_size = 32
 
     model = simple_lstm()
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
     loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
     print('\nFinal Cross-Validation Accuracy', accuracy, '\n')
+
+    # Save final training model
+    model_name = "LSTM"
+    save_model("../models/" + model_name + ".json", "../models/" + model_name + ".h5")
+
 
