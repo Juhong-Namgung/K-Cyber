@@ -116,12 +116,12 @@ with tf.device("/GPU:0"):
 
         # Compile model and define optimizer
         model = Model(input=[main_input], output=[output])
-        adam = Adam(lr=1e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        adam = Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
         model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
         return model
 
 with tf.device("/GPU:0"):
-    epochs = 6
+    epochs = 10
     batch_size = 16
 
     model = conv_fully()
