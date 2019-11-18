@@ -89,8 +89,23 @@ with tf.device("/GPU:0"):
         s_att = SeqSelfAttention(attention_activation='relu')(s_lstm)
         s_att = Flatten()(s_att)
 
+        hidden1 = Dense(4096)(s_att)
+        hidden1 = ELU()(hidden1)
+        hidden1 = BatchNormalization(mode=0)(hidden1)
+        hidden1 = Dropout(0.5)(hidden1)
+
+        hidden2 = Dense(1024)(hidden1)
+        hidden2 = ELU()(hidden2)
+        hidden2 = BatchNormalization(mode=0)(hidden2)
+        hidden2 = Dropout(0.5)(hidden2)
+
+        hidden3 = Dense(1024)(hidden2)
+        hidden3 = ELU()(hidden3)
+        hidden3 = BatchNormalization(mode=0)(hidden3)
+        hidden3 = Dropout(0.5)(hidden3)
+
         # Output layer (last fully connected layer)
-        output = Dense(20, activation='softmax', name='output')(s_att)
+        output = Dense(20, activation='softmax', name='output')(hidden3)
 
         # Compile model and define optimizer
         model = Model(input=[main_input], output=[output])
