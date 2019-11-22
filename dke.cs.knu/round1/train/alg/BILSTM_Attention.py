@@ -21,6 +21,8 @@ from keras.utils.vis_utils import model_to_dot
 from IPython.display import SVG
 from keras.utils import plot_model
 from tensorflow.python.platform import gfile
+from keras.layers import Bidirectional, GlobalMaxPool1D
+from keras_self_attention import SeqSelfAttention
 
 import json
 
@@ -41,10 +43,12 @@ def save_model(fileModelJSON, fileWeights):
         os.remove(fileWeights)
     model.save_weights(fileWeights)
 
+
 with tf.device("/GPU:0"):
 
     # Load data
-    DATA_HOME ='/home/jhnamgung/kcyber/data/'
+    DATA_HOME ='../../data/'
+    #DATA_HOME ='/home/jhnamgung/kcyber/data/'
     df = pd.read_csv(DATA_HOME + 'dga_1st_round_train.csv',encoding='ISO-8859-1', sep=',')
 
     # Convert domain string to integer
@@ -56,7 +60,7 @@ with tf.device("/GPU:0"):
     max_len = 74
 
     X = sequence.pad_sequences(url_int_tokens, maxlen=max_len)
-    y = np.array(df.nclass)
+    y = np.array(df['class'])
 
     # Cross-validation
     X_train, X_test, y_train0, y_test0 = model_selection.train_test_split(X, y, test_size=0.2, random_state=33)
@@ -67,69 +71,37 @@ with tf.device("/GPU:0"):
 
 with tf.device("/GPU:0"):
 
-    def conv_fully(max_len=74, emb_dim=32, max_vocab_len=100, W_reg=regularizers.l2(1e-4)):
-
+    def bidirection_lstm_with_attention(max_len=74, emb_dim=32, max_vocab_len=100, lstm_output_size=32, W_reg=regularizers.l2(1e-4)):
         # Input
         main_input = Input(shape=(max_len,), dtype='int32', name='main_input')
-
         # Embedding layer
-        # URL을 int로 변환한 것을 임베딩
-        emb = Embedding(input_dim=max_vocab_len, output_dim=emb_dim, input_length=max_len, W_regularizer=W_reg)(main_input)
-        emb = Dropout(0.25)(emb)
+        emb = Embedding(input_dim=max_vocab_len, output_dim=emb_dim, input_length=max_len, dropout=0.2, W_regularizer=W_reg)(main_input) 
 
-        def sum_1d(X):
-            return K.sum(X, axis=1)
-
-        def get_conv_layer(emb, kernel_size=5, filters=256):
-            # Conv layer
-            conv = Convolution1D(kernel_size=kernel_size, filters=filters, border_mode='same')(emb)
-            conv = ELU()(conv)
-            conv = Lambda(sum_1d, output_shape=(filters,))(conv)
-            conv = Dropout(0.5)(conv)
-
-            return conv
-
-        # Multiple Conv Layers
-        # 커널 사이즈를 다르게 한 conv
-        conv1 = get_conv_layer(emb, kernel_size=2, filters=256)
-        conv2 = get_conv_layer(emb, kernel_size=3, filters=256)
-        conv3 = get_conv_layer(emb, kernel_size=4, filters=256)
-        conv4 = get_conv_layer(emb, kernel_size=5, filters=256)
-
-        # Fully Connected Layers
-        # 위 결과 합침
-        merged = concatenate([conv1, conv2, conv3, conv4], axis=1)
-
-        hidden1 = Dense(1024)(merged)
-        hidden1 = ELU()(hidden1)
-        hidden1 = BatchNormalization(mode=0)(hidden1)
-        hidden1 = Dropout(0.5)(hidden1)
-
-        hidden2 = Dense(1024)(hidden1)
-        hidden2 = ELU()(hidden2)
-        hidden2 = BatchNormalization(mode=0)(hidden2)
-        hidden2 = Dropout(0.5)(hidden2)
-
+        # Bi-directional LSTM layer
+        lstm = Bidirectional(LSTM(units=128, return_sequences=True, dropout=0.2, recurrent_dropout=0.2))(emb)
+        lstm = Dropout(0.2)(lstm)
+        
+        att = SeqSelfAttention(attention_activation='relu')(lstm)
+        att = Flatten()(att)
+    
         # Output layer (last fully connected layer)
-        # 마지막 클래스 결정하는 layer
-        output = Dense(20, activation='sigmoid', name='main_output')(hidden2)
+        output = Dense(20, activation='softmax', name='output')(att)
 
         # Compile model and define optimizer
         model = Model(input=[main_input], output=[output])
-        adam = Adam(lr=1e-5, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        adam = Adam(lr=1e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
         model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
         return model
 
 with tf.device("/GPU:0"):
-    epochs = 10
-    batch_size = 16
+    epochs = 4
+    batch_size = 64
 
-    model = conv_fully()
+    model = bidirection_lstm_with_attention()
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
     loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
     print('\nFinal Cross-Validation Accuracy', accuracy, '\n')
 
     # Save final training model
-    model_name = "1DCNN"
+    model_name = "BILSTM"
     save_model("../models/" + model_name + ".json", "../models/" + model_name + ".h5")
-

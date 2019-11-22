@@ -50,7 +50,7 @@ with tf.device("/GPU:0"):
     # Load data
     DATA_HOME ='../../data/'
     #DATA_HOME ='/home/jhnamgung/kcyber/data/'
-    df = pd.read_csv(DATA_HOME + 'dga_1st_round_train.csv',encoding='ISO-8859-1', sep=',')
+    df = pd.read_csv(DATA_HOME + 'dga_2nd_round_train.csv',encoding='ISO-8859-1', sep=',')
 
     # Convert domain string to integer
     # URL 알파벳을 숫자로 변경
@@ -63,12 +63,10 @@ with tf.device("/GPU:0"):
     X = sequence.pad_sequences(url_int_tokens, maxlen=max_len)
     y = np.array(df['class'])
 
-    # Cross-validation
-    X_train, X_test, y_train0, y_test0 = model_selection.train_test_split(X, y, test_size=0.2, random_state=33)
+    # Using all training data to train final model
+    X_train = X
+    y_train = np_utils.to_categorical(y, 20) # dga class: 0~19: 20개
 
-    # dga class: 0~19: 20개
-    y_train = np_utils.to_categorical(y_train0, 20)
-    y_test = np_utils.to_categorical(y_test0, 20)
 
 with tf.device("/GPU:0"):
 
@@ -90,40 +88,30 @@ with tf.device("/GPU:0"):
         # Embedding layer
         emb = Embedding(input_dim=max_vocab_len, output_dim=emb_dim, input_length=max_len, dropout=0.2, W_regularizer=W_reg)(main_input)
 
+        # CNN layer
+        conv2 = get_conv_layer(emb, kernel_size=2, filters=256)
+        conv3 = get_conv_layer(emb, kernel_size=3, filters=256)
+        conv4 = get_conv_layer(emb, kernel_size=4, filters=256)
+        conv5 = get_conv_layer(emb, kernel_size=5, filters=256)
 
-        #conv1 = get_conv_layer(emb, kernel_size=2, filters=256)
-        conv2 = get_conv_layer(emb, kernel_size=3, filters=256)
-        conv3 = get_conv_layer(emb, kernel_size=4, filters=256)
-        #conv4 = get_conv_layer(emb, kernel_size=5, filters=256)
-
-        merged = concatenate([ conv2, conv3])
-        # conv2 = get_conv_layer(emb, kernel_size=3, filters=128)
-        # #conv2 = Flatten(conv2)
-        # conv3 = get_conv_layer(emb, kernel_size=4, filters=128)
-        # #conv3 = Flatten(conv3)
-
-        # merged = concatenate([conv2, conv3], axis=1)
-        #merged = Flatten()(merged)
-        # conv = Convolution1D(kernel_size=4, filters=256, border_mode='same')(emb)
-        # conv = ELU()(conv)
-        # conv = MaxPooling1D(pool_size=4)(conv)
-        # conv = Dropout(0.2)(conv)
+        # Merge CNN layer
+        merged = concatenate([conv2, conv3, conv4, conv5])
 
         # Bi-directional LSTM layer
         lstm = Bidirectional(LSTM(units=128, return_sequences=True, dropout=0.2, recurrent_dropout=0.2))(emb)
         
-        att = SeqSelfAttention(attention_activation='softmax')(lstm)
-        #att = Flatten()(att)
+        att = SeqSelfAttention(attention_activation='relu')(lstm)
 
+        # Merge CNN and BILSTM layer
         cnnlstm_merged = concatenate([merged, att])
-        #cnnlstm_merged = Flatten()(cnnlstm_merged)
 
+        # BILSTM with Attention layer
         s_lstm = Bidirectional(LSTM(units=64, return_sequences=True, dropout=0.2, recurrent_dropout=0.2))(cnnlstm_merged)
         s_lstm = Dropout(0.2)(s_lstm)
-
-        s_att = SeqSelfAttention(attention_activation='softmax')(s_lstm)
+        s_att = SeqSelfAttention(attention_activation='relu')(s_lstm)
         s_att = Flatten()(s_att)
 
+        # Dense layer
         hidden1 = Dense(4096)(s_att)
         hidden1 = ELU()(hidden1)
         hidden1 = BatchNormalization(mode=0)(hidden1)
@@ -149,15 +137,14 @@ with tf.device("/GPU:0"):
         return model
 
 with tf.device("/GPU:0"):
-    epochs = 5
+    epochs = 3
     batch_size = 64
 
     model = bidirection_lstm_with_attention()
-    # model.summary()
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
-    loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
-    print('\nFinal Cross-Validation Accuracy', accuracy, '\n')
+    #loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
+    #print('\nFinal Cross-Validation Accuracy', accuracy, '\n')
 
     # Save final training model
-    model_name = "CNN_BILSTM_ATT"
+    model_name = "CNN_BILSTM_ATT_final"
     save_model("../models/" + model_name + ".json", "../models/" + model_name + ".h5")

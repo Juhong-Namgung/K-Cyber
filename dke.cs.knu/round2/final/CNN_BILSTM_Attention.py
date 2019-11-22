@@ -49,8 +49,8 @@ def save_model(fileModelJSON, fileWeights):
 with tf.device("/GPU:0"):
 
     # Load data
-    #DATA_HOME ='../../data/'
-    DATA_HOME ='/home/jhnamgung/kcyber/data/' 
+    DATA_HOME ='../../data/'
+    #DATA_HOME ='/home/jhnamgung/kcyber/data/'
     #df = pd.read_csv(DATA_HOME + 'sample.csv',encoding='ISO-8859-1', sep=',')
     df = pd.read_csv(DATA_HOME + 'dga_2nd_round_train.csv',encoding='ISO-8859-1', sep=',')
 

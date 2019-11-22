@@ -66,7 +66,8 @@ def plot_confusion_matrix2(y_true, y_pred, classes,
     return ax
 
 def plot_confusion_matrix(cm, target_names=None, cmap=None, normalize=True, labels=True, title='Confusion matrix'):
-    accuracy = np.trace(cm) / float(np.sum(cm))
+    accuracy = np.trace(cm) / float(np.
+                                    sum(cm))
     misclass = 1 - accuracy
 
     if cmap is None:
@@ -100,27 +101,26 @@ def plot_confusion_matrix(cm, target_names=None, cmap=None, normalize=True, labe
 
     plt.tight_layout()
     plt.ylabel('True label')
-    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.4f}'.format(accuracy, misclass))
+    plt.xlabel('Predicted label\naccuracy={:0.4f}; misclass={:0.z4f}'.format(accuracy, misclass))
     plt.show()
 
 
-df_answer = pd.read_csv("../../data/" + 'dga_1st_round_answer.csv',encoding='ISO-8859-1', sep=',')
-df_submit = pd.read_csv("./" + 'CNN_BILSTM_ATT.csv',encoding='ISO-8859-1', sep=',')
-
-y_answer = df_answer['class']
-y_pred = df_submit['class']
+#df_answer = pd.read_csv("../../data/" + 'dga_1st_round_answer.csv',encoding='ISO-8859-1', sep=',')
+#df_submit = pd.read_csv("./" + 'CNN_BILSTM_ATT.csv',encoding='ISO-8859-1', sep=',')
+#df_submit = pd.read_csv("./" + 'STACKING.csv',encoding='ISO-8859-1', sep=',')
+df_answer = pd.read_csv("../../data/" + 'split_2nd_test_cnn.csv',encoding='ISO-8859-1', sep=',')
+df_submit = pd.read_csv("../../train/alg/competition/result/" + 'STACKING_TRIPLE.csv',encoding='ISO-8859-1', sep=',')
+y_answer = df_answer['dga']
+y_pred = df_submit['dga']
 cm = confusion_matrix(y_answer, y_pred)
 class_name = []
 
 y_answer = np.array(y_answer)
 y_pred = np.array(y_pred)
 
-for i in range(20):
-    class_name.append(i)
-
 # Plot normalized confusion matrix
 #plot_confusion_matrix(cm, title='Confusion matrix', labels=True)
-plot_confusion_matrix2(y_answer, y_pred, classes = class_name, title='Confusion matrix', normalize=True)
+plot_confusion_matrix2(y_answer, y_pred, classes = ['yes','no'], title='Confusion matrix', normalize=True)
 plt.show()
 
 
