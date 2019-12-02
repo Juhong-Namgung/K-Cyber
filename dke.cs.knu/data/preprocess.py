@@ -8,7 +8,7 @@ font_name = font_manager.FontProperties(fname="c:/Windows/Fonts/malgun.ttf").get
 rc('font', family=font_name)
 
 #df = pd.read_csv("./dga_1st_round_train.csv")
-df = pd.read_csv("./dga_1st_round_answer.csv")
+df = pd.read_csv("./dga_2nd_round_answer.csv")
 # 시각화
 ax = sns.countplot(x="class", data=df)
 total = float(len(df))
