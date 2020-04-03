@@ -9,7 +9,7 @@
 - 팀원: 남궁주홍, 문효종
 - http://securitybigdata.kr/title.php
 
- 
+![result.jpg](./presentation/result.jpg) 
 ----------
 ### Directory List(dke.cs.knu)
 
