@@ -6,6 +6,7 @@
 ### AI 기반 악성 도메인 예측
 
 DGA 여부 예측: DGA/정상 도메인 예측
+
 알고리즘 예측: 도메인 생성 알고리즘 예측
 
 - 팀명: DKE  
@@ -25,16 +26,16 @@ DGA 여부 예측: DGA/정상 도메인 예측
 -------------  
 ### 딥러닝 기반 DGA 예측
 1. 문제 정의
- - 도메인 문자를 입력으로 DGA 알고리즘(0~19) 예측 
- - DGA 알고리즘 0: 정상 도메인
- - DGA 알고리즘 n (n≠0): DGA 도메인
+   - 도메인 문자를 입력으로 DGA 알고리즘(0~19) 예측 
+   - DGA 알고리즘 0: 정상 도메인
+   - DGA 알고리즘 n (n≠0): DGA 도메인
 2. 데이터 학습 및 예측
-	1) 입력 도메인을 int vector로 변환
+  1) 입력 도메인을 int vector로 변환
 	ex) vsviqe.com --> [[32,29,32,19,27,15,76,13,25,23] ]
-	2) 최대 길이(len=74)로 padding 
+  2) 최대 길이(len=74)로 padding 
 	ex)  [[32,29,32,19,27,15,76,13 25,23]] --> [0,0,0,0,…,13,25,23]]
-	3) 딥러닝 모델 학습
-	4) DGA 알고리즘 예측하여 0이면 정상 도메인, 1~19면 DGA 도메인
+  3) 딥러닝 모델 학습
+  4) DGA 알고리즘 예측하여 0이면 정상 도메인, 1~19면 DGA 도메인
 
 
 #### 딥러닝 모델
@@ -42,12 +43,12 @@ DGA 여부 예측: DGA/정상 도메인 예측
 2. LSTM(Long Short-Term Memory)
 3. BiLSTM with Attention
 4. Ensemble(fully-connected)
-- CNN과 BiLSTM with Attention 모델을 fully-connected layer로 앙상블(end-to-end)
+  - CNN과 BiLSTM with Attention 모델을 fully-connected layer로 앙상블(end-to-end)
 
 5. Ensemble(Stacking)
-- 스태킹(stacking): 후보 모델의 예측 값을 가지고 새로운 메타 모델을 학습시켜 최종 예측 모델을 만드는 방법
-- 4의 모델과 BiLSTM with Attention 모델을 후보로 fully-connected layer로 stacking
-- 4의 앙상블과 다른 점: 4는 end-to-end 방식으로 학습하지만, stacking은 각 후보 모델의 예측 값을 사용하여 다음 레벨의 모델을 학습하는 방식
+  - 스태킹(stacking): 후보 모델의 예측 값을 가지고 새로운 메타 모델을 학습시켜 최종 예측 모델을 만드는 방법
+  - 4의 모델과 BiLSTM with Attention 모델을 후보로 fully-connected layer로 stacking
+  - 4의 앙상블과 다른 점: 4는 end-to-end 방식으로 학습하지만, stacking은 각 후보 모델의 예측 값을 사용하여 다음 레벨의 모델을 학습하는 방식
 
 
 ----------  
